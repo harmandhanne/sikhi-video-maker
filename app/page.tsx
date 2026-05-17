@@ -16,6 +16,7 @@ const [customLength, setCustomLength] = useState("");
 const [videoTag, setVideoTag] = useState("singhmotivation");
 const [isRendering, setIsRendering] = useState(false);
 const [renderProgress, setRenderProgress] = useState(0);
+const [downloadUrl, setDownloadUrl] = useState("");
 
   async function generateScenes() {
     const parts = script
@@ -121,6 +122,7 @@ const sceneDurations = getSceneDurations({
   onClick={async () => {
     setIsRendering(true);
     setRenderProgress(0);
+    setDownloadUrl("");
 
 try {
   const res = await fetch("/api/render-video", {
@@ -156,6 +158,7 @@ try {
       clearInterval(interval);
 
       setRenderProgress(100);
+      setDownloadUrl(progressData.downloadUrl);
 
       const a = document.createElement("a");
 
@@ -208,6 +211,17 @@ setTimeout(() => {
       Rendering video... {renderProgress}%
     </p>
   </div>
+)}
+
+{downloadUrl && (
+  <a
+    href={downloadUrl}
+    download
+    target="_blank"
+    className="block w-full bg-green-500 text-black py-4 rounded-xl font-bold text-lg text-center"
+  >
+    Download Video
+  </a>
 )}
 
         {scenes.length > 0 && (
