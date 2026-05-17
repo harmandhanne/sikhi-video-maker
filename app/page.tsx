@@ -159,15 +159,17 @@ try {
 
       const a = document.createElement("a");
 
-      a.href = progressData.downloadUrl;
+a.href = `${progressData.downloadUrl}?t=${Date.now()}`;
 
-      a.download = "video.mp4";
+a.download = `sikhi-video-${Date.now()}.mp4`;
 
-      document.body.appendChild(a);
+document.body.appendChild(a);
 
-      a.click();
+a.click();
 
-      a.remove();
+setTimeout(() => {
+  a.remove();
+}, 1000);
 
       setTimeout(() => {
         setIsRendering(false);
