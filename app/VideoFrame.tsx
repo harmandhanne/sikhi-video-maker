@@ -154,16 +154,18 @@ fontSize:
     ? `clamp(16px, ${32 - sceneText.length * 0.25}px, 34px)`
     : `clamp(28px, ${58 - sceneText.length * 0.35}px, 58px)`,
 
-fontWeight: 900,
-lineHeight: 1.1,
+fontWeight: 800,
+lineHeight: 1.08,
+letterSpacing: "0.015em",
 textTransform: "uppercase",
+
 textShadow:
-  "0 4px 12px rgba(0,0,0,0.9), 0 0 22px rgba(0,0,0,0.8)",
+  "0 2px 8px rgba(0,0,0,0.55)",
 
 WebkitTextStroke:
   mode === "export"
-    ? "2px rgba(0,0,0,0.45)"
-    : "1px rgba(0,0,0,0.45)",
+    ? "1px rgba(0,0,0,0.35)"
+    : "0.5px rgba(0,0,0,0.35)",
 
 maxWidth: "100%",
 paddingLeft: 20,
