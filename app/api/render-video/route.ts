@@ -24,11 +24,17 @@ export async function POST(req: Request) {
     status: "rendering",
   });
 
-  const child = spawn("node", [
-    "scripts/render-video.mjs",
-    JSON.stringify(inputProps),
-    outputPath,
-  ]);
+const scriptPath = path.join(
+  process.cwd(),
+  "scripts",
+  "render-video.mjs"
+);
+
+const child = spawn("node", [
+  scriptPath,
+  JSON.stringify(inputProps),
+  outputPath,
+]);
 
   child.stdout.on("data", (data) => {
     const lines = data.toString().split("\n").filter(Boolean);
