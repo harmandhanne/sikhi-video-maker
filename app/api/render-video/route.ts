@@ -69,7 +69,7 @@ const child = spawn("node", [
         ...job,
         progress: 100,
         status: "done",
-        downloadUrl: `/exports/${outputName}`,
+        downloadUrl: `/api/download-video/${outputName}`,
       });
 
       setTimeout(() => {
