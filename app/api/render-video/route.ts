@@ -80,7 +80,7 @@ const child = spawn("node", [
             console.log(`Deleted old export: ${outputName}`);
           }
         });
-      }, 1000 * 60 * 1);
+      }, 1000 * 60 * 10);
     } else {
       renderJobs.set(jobId, {
         ...job,
