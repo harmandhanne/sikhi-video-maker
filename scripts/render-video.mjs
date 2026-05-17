@@ -23,6 +23,16 @@ await renderMedia({
   codec: "h264",
   outputLocation: outputPath,
   inputProps,
+  concurrency: 8,
+  jpegQuality: 75,
+    onProgress: ({ progress }) => {
+    console.log(
+      JSON.stringify({
+        type: "progress",
+        progress: Math.round(progress * 100),
+      })
+    );
+  },
 });
 
 console.log(outputPath);

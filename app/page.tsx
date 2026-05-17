@@ -14,6 +14,8 @@ export default function Home() {
   const [videoLength, setVideoLength] = useState(30);
 const [customLength, setCustomLength] = useState("");
 const [videoTag, setVideoTag] = useState("singhmotivation");
+const [isRendering, setIsRendering] = useState(false);
+const [renderProgress, setRenderProgress] = useState(0);
 
   async function generateScenes() {
     const parts = script
@@ -113,32 +115,98 @@ const sceneDurations = getSceneDurations({
           Generate Video
         </button>
 
-        <button
-  className="w-full bg-yellow-400 text-black py-4 rounded-xl font-bold text-lg hover:opacity-80"
+<button
+  disabled={isRendering}
+  className="w-full bg-yellow-400 text-black py-4 rounded-xl font-bold text-lg hover:opacity-80 disabled:opacity-50"
   onClick={async () => {
-const res = await fetch("/api/render-video", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    scenes,
-    videoLength:
-      videoLength === 999
-        ? Number(customLength || 30)
-        : videoLength,
-    videoSize,
-    videoTag,
-  }),
-});
+    setIsRendering(true);
+    setRenderProgress(0);
 
-const data = await res.json();
+try {
+  const res = await fetch("/api/render-video", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      scenes,
+      videoLength:
+        videoLength === 999
+          ? Number(customLength || 30)
+          : videoLength,
+      videoSize,
+      videoTag,
+    }),
+  });
 
-window.open(data.downloadUrl, "_blank");
+  const data = await res.json();
+
+  const jobId = data.jobId;
+
+  const interval = setInterval(async () => {
+    const progressRes = await fetch(
+      `/api/render-progress/${jobId}`
+    );
+
+    const progressData = await progressRes.json();
+
+    setRenderProgress(progressData.progress);
+
+    if (progressData.status === "done") {
+      clearInterval(interval);
+
+      setRenderProgress(100);
+
+      const a = document.createElement("a");
+
+      a.href = progressData.downloadUrl;
+
+      a.download = "video.mp4";
+
+      document.body.appendChild(a);
+
+      a.click();
+
+      a.remove();
+
+      setTimeout(() => {
+        setIsRendering(false);
+        setRenderProgress(0);
+      }, 1200);
+    }
+
+    if (progressData.status === "error") {
+      clearInterval(interval);
+
+      alert("Render failed");
+
+      setIsRendering(false);
+    }
+  }, 1000);
+} catch (error) {
+  console.error(error);
+  alert("Render failed to start");
+  setIsRendering(false);
+}
   }}
 >
-  Export MP4
+  {isRendering ? "Rendering..." : "Export MP4"}
 </button>
+
+{isRendering && (
+  <div className="w-full space-y-3">
+    <div className="w-full h-4 bg-zinc-800 rounded-full overflow-hidden">
+      <div
+        className="h-full bg-yellow-400 transition-all duration-500"
+        style={{ width: `${renderProgress}%` }}
+      />
+    </div>
+
+    <p className="text-center text-sm text-zinc-400">
+      Rendering video... {renderProgress}%
+    </p>
+  </div>
+)}
 
         {scenes.length > 0 && (
 <VideoPreview

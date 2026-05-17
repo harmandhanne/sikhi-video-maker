@@ -6,14 +6,23 @@ export default function Root() {
     <Composition
       id="SikhiVideo"
       component={RemotionVideo}
-      durationInFrames={900}
-      fps={30}
-      width={1080}
-      height={1920}
-defaultProps={{
-  scenes: ["Your video will appear here"],
-  videoTag: "@singhmotivation",
-}}
+      durationInFrames={120}
+      fps={24}
+      width={720}
+      height={1280}
+      defaultProps={{
+        scenes: ["Your video will appear here"],
+        videoLength: 5,
+        videoTag: "@singhmotivation",
+      }}
+      calculateMetadata={({ props }) => {
+        const fps = 24;
+        const videoLength = props.videoLength || 5;
+
+        return {
+          durationInFrames: Math.max(1, Math.round(videoLength * fps)),
+        };
+      }}
     />
   );
 }

@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
+import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+import { renderJobs } from "../render-jobs";
 
 export async function POST(req: Request) {
-  const body = await req.json();
+  const inputProps = await req.json();
+
+  const jobId = crypto.randomUUID();
+  const outputName = `${jobId}.mp4`;
 
   const exportsDir = path.join(process.cwd(), "public", "exports");
 
@@ -14,33 +16,73 @@ export async function POST(req: Request) {
     fs.mkdirSync(exportsDir, { recursive: true });
   }
 
-  const fileName = `video-${Date.now()}.mp4`;
-  const outputPath = path.join(exportsDir, fileName);
+  const outputPath = path.join(exportsDir, outputName);
 
-  const { execFile } = await import("node:child_process");
-
-  const scriptPath =
-    process.cwd().replace(/\\/g, "/") +
-    "/scripts/render-video.mjs";
-
-  await new Promise((resolve, reject) => {
-    execFile(
-      process.execPath,
-      [
-        scriptPath,
-        JSON.stringify(body),
-        outputPath,
-      ],
-      { cwd: process.cwd() },
-      (error) => {
-        if (error) reject(error);
-        else resolve(true);
-      }
-    );
+  renderJobs.set(jobId, {
+    id: jobId,
+    progress: 0,
+    status: "rendering",
   });
 
-  return NextResponse.json({
-    success: true,
-    downloadUrl: `/exports/${fileName}`,
+  const child = spawn("node", [
+    "scripts/render-video.mjs",
+    JSON.stringify(inputProps),
+    outputPath,
+  ]);
+
+  child.stdout.on("data", (data) => {
+    const lines = data.toString().split("\n").filter(Boolean);
+
+    for (const line of lines) {
+      try {
+        const parsed = JSON.parse(line);
+
+        if (parsed.type === "progress") {
+          const job = renderJobs.get(jobId);
+
+          if (job) {
+            job.progress = parsed.progress;
+            renderJobs.set(jobId, job);
+          }
+        }
+      } catch {}
+    }
   });
+
+  child.stderr.on("data", (data) => {
+    console.error(data.toString());
+  });
+
+  child.on("close", (code) => {
+    const job = renderJobs.get(jobId);
+
+    if (!job) return;
+
+    if (code === 0) {
+      renderJobs.set(jobId, {
+        ...job,
+        progress: 100,
+        status: "done",
+        downloadUrl: `/exports/${outputName}`,
+      });
+
+      setTimeout(() => {
+        fs.unlink(outputPath, (err) => {
+          if (err) {
+            console.error("Delete failed:", err);
+          } else {
+            console.log(`Deleted old export: ${outputName}`);
+          }
+        });
+      }, 1000 * 60 * 1);
+    } else {
+      renderJobs.set(jobId, {
+        ...job,
+        status: "error",
+        error: "Render failed",
+      });
+    }
+  });
+
+  return NextResponse.json({ jobId });
 }

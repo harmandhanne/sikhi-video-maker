@@ -23,10 +23,10 @@ mode?: "preview" | "export";
 }) {
 const exportStyle =
   videoSize === "1:1"
-    ? { width: 1080, height: 1080 }
+    ? { width: 720, height: 720 }
     : videoSize === "16:9"
-    ? { width: 1920, height: 1080 }
-    : { width: 1080, height: 1920 };
+    ? { width: 1280, height: 720 }
+    : { width: 720, height: 1280 };
 
   const sceneText = scenes[currentScene] || "";
   const mood = getSceneMood(sceneText);
@@ -40,7 +40,7 @@ return (
         ? { width: 400, height: 400 }
         : videoSize === "16:9"
         ? { width: 500, height: 281 }
-        : { width: 300, height: 533 }),
+        : { width: 400, height: 711 }),
 
 background:
   mood === "rain"
@@ -87,18 +87,7 @@ background:
       }}
     />
 
-    <div
-      style={{
-        position: "absolute",
-        width: "75%",
-        height: "40%",
-        borderRadius: "50%",
-        background: "rgba(255,255,255,0.15)",
-        filter: "blur(80px)",
-      }}
-    />
-
-{[...Array(mood === "rain" ? 45 : 30)].map((_, i) => (
+{[...Array(mood === "rain" ? 12 : 8)].map((_, i) => (
   <div
     key={i}
     style={{
@@ -148,12 +137,12 @@ transform:
 <div
   style={{
     textAlign: "center",
-    width: mode === "export" ? "64%" : "70%",
+    width: "92%",
     zIndex: 10,
 
-    opacity: 0.7 + progress / 140,
+    opacity: 1,
 
-    transform: `scale(${0.96 + progress / 2500}) translateY(${12 - progress / 8}px)`,
+    transform: "translateY(0px)",
 
     transition: "all 0.12s linear",
   }}
@@ -162,37 +151,32 @@ transform:
         style={{
 fontSize:
   mode === "preview"
-    ? sceneText.length > 120
-      ? 16
-      : sceneText.length > 80
-      ? 18
-      : sceneText.length > 50
-      ? 22
-      : sceneText.length > 30
-      ? 26
-      : 34
-    : sceneText.length > 120
-    ? 40
-    : sceneText.length > 80
-    ? 52
-    : sceneText.length > 50
-    ? 64
-    : sceneText.length > 30
-    ? 76
-    : 92,
+    ? `clamp(16px, ${32 - sceneText.length * 0.25}px, 34px)`
+    : `clamp(28px, ${58 - sceneText.length * 0.35}px, 58px)`,
 
 fontWeight: 900,
 lineHeight: 1.1,
 textTransform: "uppercase",
 textShadow:
   "0 4px 12px rgba(0,0,0,0.9), 0 0 22px rgba(0,0,0,0.8)",
-WebkitTextStroke: mode === "export" ? "2px rgba(0,0,0,0.45)" : "1px rgba(0,0,0,0.45)",
+
+WebkitTextStroke:
+  mode === "export"
+    ? "2px rgba(0,0,0,0.45)"
+    : "1px rgba(0,0,0,0.45)",
+
+maxWidth: "100%",
+paddingLeft: 20,
+paddingRight: 20,
+boxSizing: "border-box",
+
+whiteSpace: "normal",
+wordBreak: "keep-all",
+overflowWrap: "normal",
         }}
       >
-{sceneText.split(" ").map((word, i) => {
-  const words = sceneText.split(" ");
-  const visibleWords = Math.ceil((progress / 100) * words.length);
 
+        {sceneText.split(" ").map((word, i) => {
   const cleanWord = word.toLowerCase().replace(/[^\w]/g, "");
 
   const highlightWords = [
@@ -207,28 +191,32 @@ WebkitTextStroke: mode === "export" ? "2px rgba(0,0,0,0.45)" : "1px rgba(0,0,0,0
   ];
 
   const isHighlight = highlightWords.includes(cleanWord);
-  const isVisible = i < visibleWords;
+  const isLongWord = word.length > 12;
 
   return (
     <span
       key={i}
       style={{
-        opacity: isVisible ? 1 : 0,
+        display: "inline",
+        whiteSpace: "normal",
+
+fontSize: isLongWord
+  ? mode === "preview"
+    ? Math.max(8, 24 - word.length * 0.6)
+    : Math.max(14, 36 - word.length * 0.9)
+  : "inherit",
+
         color: isHighlight ? "#facc15" : "white",
         textShadow: isHighlight
           ? "0 0 14px rgba(250,204,21,0.9)"
           : "inherit",
-        transition: `all 0.55s cubic-bezier(0.22, 1, 0.36, 1) ${i * 0.03}s`,
-transform: isVisible
-  ? "translateY(0px) scale(1)"
-  : "translateY(12px) scale(0.96)",
-filter: isVisible ? "blur(0px)" : "blur(6px)",
       }}
     >
       {word}{" "}
     </span>
   );
 })}
+
       </div>
 
       <div
@@ -244,7 +232,7 @@ filter: isVisible ? "blur(0px)" : "blur(6px)",
       <div
         style={{
           marginTop: 24,
-          fontSize: 28,
+          fontSize: 20,
           color: "rgba(255,255,255,0.7)",
           textAlign: "center",
           width: "100%",
