@@ -21,6 +21,7 @@ await renderMedia({
   composition,
   serveUrl: bundleLocation,
   codec: "h264",
+  imageFormat: "png",
   outputLocation: outputPath,
   inputProps,
   concurrency: 1,
