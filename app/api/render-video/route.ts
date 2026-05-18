@@ -60,7 +60,7 @@ if (voiceResult.status !== 0) {
 const audioDuration = metadata.format.duration || inputProps.videoLength;
 
   inputProps.audioFileName = audioName;
-inputProps.audioUrl = `${baseUrl}/exports/${audioName}`;
+inputProps.audioUrl = `${baseUrl}/api/download-video/${audioName}`;
 inputProps.videoLength = Math.ceil(audioDuration);
   }
 } else {

@@ -46,7 +46,7 @@ export async function POST(req: Request) {
 const audioDuration = metadata.format.duration || 30;
 
   return NextResponse.json({
-    audioUrl: `/exports/${audioName}`,
+    audioUrl: `/api/download-video/${audioName}`,
     audioFileName: audioName,
     videoLength: Math.ceil(audioDuration),
   });
