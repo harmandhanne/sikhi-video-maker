@@ -64,9 +64,13 @@ const sceneDurations = getSceneDurations({
   onChange={(e) => {
     const file = e.target.files?.[0];
 if (file) {
-  const imageUrl = URL.createObjectURL(file);
+const reader = new FileReader();
 
-  setBackgroundImage(imageUrl);
+reader.onload = () => {
+  setBackgroundImage(reader.result as string);
+};
+
+reader.readAsDataURL(file);
 }
   }}
   className="w-full p-3 rounded-xl bg-zinc-900 border border-zinc-700"
@@ -140,6 +144,7 @@ try {
           : videoLength,
       videoSize,
       videoTag,
+      backgroundImage,
     }),
   });
 

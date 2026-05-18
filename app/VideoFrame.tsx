@@ -42,18 +42,19 @@ return (
         ? { width: 500, height: 281 }
         : { width: 400, height: 711 }),
 
-background:
-  mood === "rain"
-    ? "linear-gradient(to bottom, #0f172a, #020617, #1e293b)"
-    : mood === "spiritual"
-    ? "linear-gradient(to bottom, #1e3a8a, #020617, #0f766e)"
-    : mood === "fire"
-    ? "linear-gradient(to bottom, #7c2d12, #020617, #991b1b)"
-    : mood === "stars"
-    ? "linear-gradient(to bottom, #020617, #0f172a, #1e1b4b)"
-    : mood === "golden"
-    ? "linear-gradient(to bottom, #78350f, #020617, #92400e)"
-    : "linear-gradient(to bottom, #172554, #000000, #18181b)",
+background: backgroundImage
+  ? `linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.45)), url("${backgroundImage}") center / cover no-repeat`
+  : mood === "rain"
+  ? "linear-gradient(to bottom, #0f172a, #020617, #1e293b)"
+  : mood === "spiritual"
+  ? "linear-gradient(to bottom, #1e3a8a, #020617, #0f766e)"
+  : mood === "fire"
+  ? "linear-gradient(to bottom, #7c2d12, #020617, #991b1b)"
+  : mood === "stars"
+  ? "linear-gradient(to bottom, #020617, #0f172a, #1e1b4b)"
+  : mood === "golden"
+  ? "linear-gradient(to bottom, #78350f, #020617, #92400e)"
+  : "linear-gradient(to bottom, #172554, #000000, #18181b)",
 
       borderRadius: 30,
       overflow: "hidden",

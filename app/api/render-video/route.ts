@@ -30,9 +30,13 @@ const scriptPath = path.join(
   "render-video.mjs"
 );
 
+const propsPath = path.join(exportsDir, `${jobId}.json`);
+
+fs.writeFileSync(propsPath, JSON.stringify(inputProps), "utf-8");
+
 const child = spawn("node", [
   scriptPath,
-  JSON.stringify(inputProps),
+  propsPath,
   outputPath,
 ]);
 
@@ -59,8 +63,10 @@ const child = spawn("node", [
     console.error(data.toString());
   });
 
-  child.on("close", (code) => {
-    const job = renderJobs.get(jobId);
+child.on("close", (code) => {
+  fs.unlink(propsPath, () => {});
+
+  const job = renderJobs.get(jobId);
 
     if (!job) return;
 

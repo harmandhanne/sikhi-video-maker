@@ -3,8 +3,10 @@ import { renderMedia, selectComposition } from "@remotion/renderer";
 import path from "path";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+import fs from "fs";
 
-const inputProps = JSON.parse(process.argv[2]);
+const propsPath = process.argv[2];
+const inputProps = JSON.parse(fs.readFileSync(propsPath, "utf-8"));
 const outputPath = process.argv[3];
 
 const bundleLocation = await bundle({
