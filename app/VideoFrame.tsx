@@ -21,12 +21,10 @@ videoLength: number;
 videoTag: string;
 mode?: "preview" | "export";
 }) {
-const exportStyle =
-  videoSize === "1:1"
-    ? { width: 720, height: 720 }
-    : videoSize === "16:9"
-    ? { width: 1280, height: 720 }
-    : { width: 720, height: 1280 };
+const exportStyle = {
+  width: "100%",
+  height: "100%",
+};
 
   const sceneText = scenes[currentScene] || "";
   const mood = getSceneMood(sceneText);
@@ -56,7 +54,7 @@ background: backgroundImage
   ? "linear-gradient(to bottom, #78350f, #020617, #92400e)"
   : "linear-gradient(to bottom, #172554, #000000, #18181b)",
 
-      borderRadius: 30,
+      borderRadius: mode === "export" ? 0 : 30,
       overflow: "hidden",
       position: "relative",
       display: "flex",

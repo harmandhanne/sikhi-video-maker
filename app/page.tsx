@@ -64,13 +64,33 @@ const sceneDurations = getSceneDurations({
   onChange={(e) => {
     const file = e.target.files?.[0];
 if (file) {
-const reader = new FileReader();
+const img = new Image();
 
-reader.onload = () => {
-  setBackgroundImage(reader.result as string);
+img.onload = () => {
+  const maxWidth = 720;
+  const maxHeight = 1280;
+
+  const scale = Math.min(
+    maxWidth / img.width,
+    maxHeight / img.height,
+    1
+  );
+
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  const resizedImage = canvas.toDataURL("image/jpeg", 0.85);
+
+  setBackgroundImage(resizedImage);
 };
 
-reader.readAsDataURL(file);
+img.src = URL.createObjectURL(file);
 }
   }}
   className="w-full p-3 rounded-xl bg-zinc-900 border border-zinc-700"
