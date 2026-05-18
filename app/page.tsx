@@ -49,7 +49,7 @@ const sceneDurations = getSceneDurations({
   return (
     <main className="min-h-screen bg-black text-white flex items-center justify-center p-10">
       <div className="w-full max-w-2xl space-y-6">
-        <h1 className="text-5xl font-bold text-center">Sikhi Video Maker</h1>
+        <h1 className="text-5xl font-bold text-center">Video Maker</h1>
 
         <textarea
           value={script}
@@ -63,9 +63,11 @@ const sceneDurations = getSceneDurations({
   accept="image/*"
   onChange={(e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setBackgroundImage(null);
-    }
+if (file) {
+  const imageUrl = URL.createObjectURL(file);
+
+  setBackgroundImage(imageUrl);
+}
   }}
   className="w-full p-3 rounded-xl bg-zinc-900 border border-zinc-700"
 />
