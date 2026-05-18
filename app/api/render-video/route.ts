@@ -51,10 +51,11 @@ if (inputProps.useVoice) {
 
   fs.unlink(textPath, () => {});
 
-  if (voiceResult.status !== 0) {
-    console.error(voiceResult.stderr?.toString());
-    inputProps.audioFileName = null;
-  } else {
+if (voiceResult.status !== 0) {
+  console.error(voiceResult.stderr?.toString());
+  inputProps.audioFileName = null;
+  inputProps.audioUrl = null;
+} else {
     const metadata = await parseFile(audioPath);
 const audioDuration = metadata.format.duration || inputProps.videoLength;
 
@@ -73,21 +74,19 @@ inputProps.audioUrl = null;
     status: "rendering",
   });
 
-const scriptPath = path.join(
-  process.cwd(),
-  "scripts",
-  "render-video.mjs"
-);
+const scriptPath = path.join("scripts", "render-video.mjs");
 
 const propsPath = path.join(exportsDir, `${jobId}.json`);
 
 fs.writeFileSync(propsPath, JSON.stringify(inputProps), "utf-8");
 
-const child = spawn("node", [
+const child = spawn(process.execPath, [
   scriptPath,
   propsPath,
   outputPath,
-]);
+], {
+  cwd: process.cwd(),
+});
 
   child.stdout.on("data", (data) => {
     const lines = data.toString().split("\n").filter(Boolean);
