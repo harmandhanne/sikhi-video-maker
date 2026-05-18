@@ -45,9 +45,13 @@ export async function POST(req: Request) {
   const metadata = await parseFile(audioPath);
 const audioDuration = metadata.format.duration || 30;
 
-  return NextResponse.json({
-    audioUrl: `/api/download-video/${audioName}`,
-    audioFileName: audioName,
-    videoLength: Math.ceil(audioDuration),
-  });
+setTimeout(() => {
+  fs.unlink(audioPath, () => {});
+}, 1000 * 60 * 10);
+
+return NextResponse.json({
+  audioUrl: `/api/download-video/${audioName}`,
+  audioFileName: audioName,
+  videoLength: Math.ceil(audioDuration),
+});
 }
