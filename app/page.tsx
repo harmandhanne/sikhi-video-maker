@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { VideoPreview } from "./VideoPreview";
 import { getSceneDurations } from "./videoTiming";
 
@@ -17,8 +17,21 @@ const [videoTag, setVideoTag] = useState("singhmotivation");
 const [isRendering, setIsRendering] = useState(false);
 const [renderProgress, setRenderProgress] = useState(0);
 const [downloadUrl, setDownloadUrl] = useState("");
+const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+const [previewAudioUrl, setPreviewAudioUrl] = useState("");
+const [voiceVideoLength, setVoiceVideoLength] = useState<number | null>(null);
+const [useVoice, setUseVoice] = useState(false);
+const [isGeneratingVoice, setIsGeneratingVoice] = useState(false);
+const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+const [previewStartKey, setPreviewStartKey] = useState(0);
+const [showPreviewIcon, setShowPreviewIcon] = useState(true);
+const previewIconTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  async function generateScenes() {
+async function generateScenes() {
+  setIsGeneratingVideo(true);
+
+  try {
     const parts = script
       .split(/[.!?]/)
       .map((line) => line.trim())
@@ -36,10 +49,46 @@ const [downloadUrl, setDownloadUrl] = useState("");
 
     const data = await res.json();
     setPrompts(data.prompts);
-  }
 
-  const finalVideoLength =
-  videoLength === 999 ? Number(customLength || 30) : videoLength;
+    if (useVoice) {
+      setIsGeneratingVoice(true);
+      setIsPreviewPlaying(false);
+      setPreviewAudioUrl("");
+      setVoiceVideoLength(null);
+
+      const voiceRes = await fetch("/api/generate-voice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ scenes: parts }),
+      });
+
+      const voiceData = await voiceRes.json();
+
+      setPreviewAudioUrl(`${voiceData.audioUrl}?t=${Date.now()}`);
+      setVoiceVideoLength(voiceData.videoLength);
+      setIsGeneratingVoice(false);
+    } else {
+      setPreviewAudioUrl("");
+      setVoiceVideoLength(null);
+      setIsPreviewPlaying(false);
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Video generation failed");
+  } finally {
+    setIsGeneratingVideo(false);
+  }
+}
+  
+
+const finalVideoLength =
+  useVoice && voiceVideoLength
+    ? voiceVideoLength
+    : videoLength === 999
+    ? Number(customLength || 30)
+    : videoLength;
 
 const sceneDurations = getSceneDurations({
   scenes,
@@ -106,16 +155,18 @@ img.src = URL.createObjectURL(file);
   <option value="16:9">YouTube 16:9</option>
 </select>
 
-<select
-  value={videoLength}
-  onChange={(e) => setVideoLength(Number(e.target.value))}
-  className="w-full p-3 rounded-xl bg-zinc-900 border border-zinc-700"
->
-  <option value={15}>15 Seconds</option>
-  <option value={30}>30 Seconds</option>
-  <option value={60}>60 Seconds</option>
-  <option value={999}>Custom</option>
-</select>
+{!useVoice && (
+  <select
+    value={videoLength}
+    onChange={(e) => setVideoLength(Number(e.target.value))}
+    className="w-full p-3 rounded-xl bg-zinc-900 border border-zinc-700"
+  >
+    <option value={15}>15 Seconds</option>
+    <option value={30}>30 Seconds</option>
+    <option value={60}>60 Seconds</option>
+    <option value={999}>Custom</option>
+  </select>
+)}
 
 <input
   type="text"
@@ -125,7 +176,7 @@ img.src = URL.createObjectURL(file);
   className="w-full p-3 rounded-xl bg-zinc-900 border border-zinc-700"
 />
 
-{videoLength === 999 && (
+{!useVoice && videoLength === 999 && (
   <input
     type="number"
     placeholder="Enter custom seconds"
@@ -135,12 +186,34 @@ img.src = URL.createObjectURL(file);
   />
 )}
 
-        <button
-          onClick={generateScenes}
-          className="w-full bg-white text-black py-4 rounded-xl font-bold text-lg hover:opacity-80"
-        >
-          Generate Video
-        </button>
+<label className="flex items-center gap-3 p-4 rounded-xl bg-zinc-900 border border-zinc-700">
+  <input
+    type="checkbox"
+    checked={useVoice}
+    onChange={(e) => {
+  setUseVoice(e.target.checked);
+  setPreviewAudioUrl("");
+  setVoiceVideoLength(null);
+  setIsPreviewPlaying(false);
+}}
+  />
+  <span>Use voice and auto-match video length</span>
+</label>
+
+<button
+  onClick={generateScenes}
+  disabled={isGeneratingVideo}
+  className="w-full bg-white text-black py-4 rounded-xl font-bold text-lg hover:opacity-80 disabled:opacity-50"
+>
+  {isGeneratingVideo ? (
+    <span className="flex items-center justify-center gap-3">
+      <span className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+      Generating Video...
+    </span>
+  ) : (
+    "Generate Video"
+  )}
+</button>
 
 <button
   disabled={isRendering}
@@ -158,13 +231,11 @@ try {
     },
     body: JSON.stringify({
       scenes,
-      videoLength:
-        videoLength === 999
-          ? Number(customLength || 30)
-          : videoLength,
+videoLength: finalVideoLength,
       videoSize,
       videoTag,
       backgroundImage,
+      useVoice,
     }),
   });
 
@@ -251,20 +322,72 @@ setTimeout(() => {
   </a>
 )}
 
-        {scenes.length > 0 && (
-<VideoPreview
-  scenes={scenes}
-  backgroundImage={backgroundImage}
-  videoSize={videoSize}
+{useVoice && isGeneratingVoice && (
+  <div className="w-full flex justify-center py-10">
+    <div className="w-14 h-14 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+  </div>
+)}
 
-  videoLength={
-  videoLength === 999
-    ? Number(customLength || 30)
-    : videoLength
-}
-    videoTag={videoTag}
+{scenes.length > 0 && (!useVoice || previewAudioUrl) && (
+  <div className="relative mx-auto" style={{ width: "fit-content" }}>
+    {useVoice && previewAudioUrl && (
+      <audio
+        ref={audioRef}
+        src={previewAudioUrl}
+        onEnded={() => setIsPreviewPlaying(false)}
+        className="hidden"
+      />
+    )}
 
-/>
+    <VideoPreview
+      scenes={scenes}
+      backgroundImage={backgroundImage}
+      videoSize={videoSize}
+      videoLength={finalVideoLength}
+      videoTag={videoTag}
+      isPlaying={!useVoice || isPreviewPlaying}
+      resetKey={previewStartKey}
+    />
+
+    {useVoice && previewAudioUrl && (
+      <button
+        className={`absolute inset-0 flex items-center justify-center rounded-[30px] z-20 p-0 border-0 ${
+  showPreviewIcon || !isPreviewPlaying ? "bg-black/20" : "bg-transparent"
+}`}
+onClick={async () => {
+  if (!audioRef.current) return;
+
+  if (previewIconTimeoutRef.current) {
+    clearTimeout(previewIconTimeoutRef.current);
+  }
+
+  if (isPreviewPlaying) {
+    audioRef.current.pause();
+    setIsPreviewPlaying(false);
+    setShowPreviewIcon(true);
+    return;
+  }
+
+  audioRef.current.currentTime = 0;
+  setPreviewStartKey((prev) => prev + 1);
+  setIsPreviewPlaying(true);
+  setShowPreviewIcon(true);
+
+  await audioRef.current.play();
+
+  previewIconTimeoutRef.current = setTimeout(() => {
+    setShowPreviewIcon(false);
+  }, 1000);
+}}
+      >
+{showPreviewIcon && (
+  <span className="w-20 h-20 rounded-full bg-yellow-400/90 text-[#fefcfc] flex items-center justify-center text-4xl font-bold shadow-lg">
+    {isPreviewPlaying ? "❚❚" : "▶"}
+  </span>
+)}
+      </button>
+    )}
+  </div>
 )}
 
         {scenes.length > 0 && (

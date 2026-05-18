@@ -9,13 +9,17 @@ export function VideoPreview({
   backgroundImage,
   videoSize,
   videoLength,
-  videoTag,
+videoTag,
+isPlaying = true,
+resetKey = 0,
 }: {
   scenes: string[];
   backgroundImage: string | null;
   videoSize: string;
   videoLength: number;
-  videoTag: string;
+videoTag: string;
+isPlaying?: boolean;
+resetKey?: number;
 }) {
   const fps = 30;
   const safeScenes = scenes.length > 0 ? scenes : [""];
@@ -23,18 +27,22 @@ export function VideoPreview({
 
   const [frame, setFrame] = useState(0);
 
-  useEffect(() => {
-    setFrame(0);
+useEffect(() => {
+  setFrame(0);
+}, [scenes, videoLength, totalFrames, resetKey]);
 
-    const timer = setInterval(() => {
-      setFrame((prev) => {
-if (prev >= totalFrames - 1) return 0;
-return prev + 1;
-      });
-    }, 1000 / fps);
+useEffect(() => {
+  if (!isPlaying) return;
 
-    return () => clearInterval(timer);
-  }, [scenes, videoLength, totalFrames]);
+  const timer = setInterval(() => {
+    setFrame((prev) => {
+      if (prev >= totalFrames - 1) return prev;
+      return prev + 1;
+    });
+  }, 1000 / fps);
+
+  return () => clearInterval(timer);
+}, [isPlaying, totalFrames]);
 
   const { currentScene, progress } = getSceneTiming({
     scenes: safeScenes,

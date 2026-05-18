@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import path from "path";
 import fs from "fs";
+import { parseFile } from "music-metadata";
 import { renderJobs } from "../render-jobs";
 
 export async function POST(req: Request) {
@@ -17,6 +18,54 @@ export async function POST(req: Request) {
   }
 
   const outputPath = path.join(exportsDir, outputName);
+  const protocol = req.headers.get("x-forwarded-proto") || "http";
+const host = req.headers.get("host");
+
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (host ? `${protocol}://${host}` : "http://localhost:3000");
+
+if (inputProps.useVoice) {
+  const audioName = `${jobId}.mp3`;
+  const audioPath = path.join(exportsDir, audioName);
+  const textPath = path.join(exportsDir, `${jobId}.txt`);
+
+  const voiceText = Array.isArray(inputProps.scenes)
+    ? inputProps.scenes.join(". ")
+    : "";
+
+  fs.writeFileSync(textPath, voiceText, "utf-8");
+
+  const pythonCmd = process.platform === "win32" ? "python" : "python3";
+
+  const voiceResult = spawnSync(pythonCmd, [
+    "-m",
+    "edge_tts",
+    "--voice",
+    "en-US-AndrewNeural",
+    "--file",
+    textPath,
+    "--write-media",
+    audioPath,
+  ]);
+
+  fs.unlink(textPath, () => {});
+
+  if (voiceResult.status !== 0) {
+    console.error(voiceResult.stderr?.toString());
+    inputProps.audioFileName = null;
+  } else {
+    const metadata = await parseFile(audioPath);
+const audioDuration = metadata.format.duration || inputProps.videoLength;
+
+  inputProps.audioFileName = audioName;
+inputProps.audioUrl = `${baseUrl}/exports/${audioName}`;
+inputProps.videoLength = Math.ceil(audioDuration);
+  }
+} else {
+  inputProps.audioFileName = null;
+inputProps.audioUrl = null;
+}
 
   renderJobs.set(jobId, {
     id: jobId,
@@ -65,6 +114,7 @@ const child = spawn("node", [
 
 child.on("close", (code) => {
   fs.unlink(propsPath, () => {});
+  fs.unlink(path.join(exportsDir, `${jobId}.mp3`), () => {});
 
   const job = renderJobs.get(jobId);
 
