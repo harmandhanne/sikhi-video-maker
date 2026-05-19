@@ -38,11 +38,18 @@ if (inputProps.useVoice) {
 
   const pythonCmd = process.platform === "win32" ? "python" : "python3";
 
+  const selectedVoice =
+  inputProps.voiceGender === "female"
+    ? "en-US-AriaNeural"
+    : "en-US-AndrewNeural";
+
+console.log("Export voice:", selectedVoice);
+
   const voiceResult = spawnSync(pythonCmd, [
     "-m",
     "edge_tts",
     "--voice",
-    "en-US-AndrewNeural",
+    selectedVoice,
     "--file",
     textPath,
     "--write-media",

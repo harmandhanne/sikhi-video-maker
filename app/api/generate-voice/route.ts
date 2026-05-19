@@ -5,7 +5,12 @@ import fs from "fs";
 import { parseFile } from "music-metadata";
 
 export async function POST(req: Request) {
-  const { scenes } = await req.json();
+  const { scenes, voiceGender = "male" } = await req.json();
+
+const selectedVoice =
+  voiceGender === "female"
+    ? "en-US-AriaNeural"
+    : "en-US-AndrewNeural";
 
   const jobId = crypto.randomUUID();
   const exportsDir = path.join(process.cwd(), "public", "exports");
@@ -23,12 +28,12 @@ export async function POST(req: Request) {
   fs.writeFileSync(textPath, voiceText, "utf-8");
 
   const pythonCmd = process.platform === "win32" ? "python" : "python3";
-
+  console.log("Preview voice:", selectedVoice);
   const voiceResult = spawnSync(pythonCmd, [
     "-m",
     "edge_tts",
     "--voice",
-    "en-US-AndrewNeural",
+    selectedVoice,
     "--file",
     textPath,
     "--write-media",

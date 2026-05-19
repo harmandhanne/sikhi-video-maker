@@ -21,6 +21,7 @@ const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 const [previewAudioUrl, setPreviewAudioUrl] = useState("");
 const [voiceVideoLength, setVoiceVideoLength] = useState<number | null>(null);
 const [useVoice, setUseVoice] = useState(false);
+const [voiceGender, setVoiceGender] = useState<"male" | "female">("male");
 const [isGeneratingVoice, setIsGeneratingVoice] = useState(false);
 const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
 const [previewStartKey, setPreviewStartKey] = useState(0);
@@ -44,7 +45,9 @@ async function generateScenes() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ scenes: parts }),
+body: JSON.stringify({
+  scenes: parts,
+}),
     });
 
     const data = await res.json();
@@ -61,7 +64,10 @@ async function generateScenes() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ scenes: parts }),
+        body: JSON.stringify({
+  scenes: parts,
+  voiceGender,
+}),
       });
 
       const voiceData = await voiceRes.json();
@@ -116,8 +122,11 @@ if (file) {
 const img = new Image();
 
 img.onload = () => {
-  const maxWidth = 720;
-  const maxHeight = 1280;
+const maxWidth =
+  videoSize === "16:9" ? 1920 : 1080;
+
+const maxHeight =
+  videoSize === "16:9" ? 1080 : videoSize === "1:1" ? 1080 : 1920;
 
   const scale = Math.min(
     maxWidth / img.width,
@@ -132,9 +141,12 @@ img.onload = () => {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+ctx.imageSmoothingEnabled = true;
+ctx.imageSmoothingQuality = "high";
 
-  const resizedImage = canvas.toDataURL("image/jpeg", 0.85);
+ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+const resizedImage = canvas.toDataURL("image/jpeg", 0.97);
 
   setBackgroundImage(resizedImage);
 };
@@ -199,6 +211,38 @@ img.src = URL.createObjectURL(file);
   />
   <span>Use voice and auto-match video length</span>
 </label>
+
+{useVoice && (
+  <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-700 space-y-3">
+    <p className="font-bold">Choose voice</p>
+
+    <div className="grid grid-cols-2 gap-3">
+      <button
+        type="button"
+        onClick={() => setVoiceGender("male")}
+        className={`py-3 rounded-xl font-bold ${
+          voiceGender === "male"
+            ? "bg-yellow-400 text-black"
+            : "bg-zinc-800 text-white"
+        }`}
+      >
+        Male
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setVoiceGender("female")}
+        className={`py-3 rounded-xl font-bold ${
+          voiceGender === "female"
+            ? "bg-yellow-400 text-black"
+            : "bg-zinc-800 text-white"
+        }`}
+      >
+        Female
+      </button>
+    </div>
+  </div>
+)}
 
 <button
   onClick={generateScenes}
