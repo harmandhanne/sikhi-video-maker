@@ -273,14 +273,15 @@ try {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      scenes,
-videoLength: finalVideoLength,
-      videoSize,
-      videoTag,
-      backgroundImage,
-      useVoice,
-    }),
+body: JSON.stringify({
+  scenes,
+  videoLength: finalVideoLength,
+  videoSize,
+  videoTag,
+  backgroundImage,
+  useVoice,
+  voiceGender,
+}),
   });
 
   const data = await res.json();
