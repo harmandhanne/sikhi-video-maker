@@ -8,14 +8,16 @@ export function RemotionVideo({
   videoLength = 30,
   backgroundImage = null,
   videoSize = "9:16",
-  audioUrl = null,
+audioUrl = null,
+sceneDurations = [],
 }: {
   scenes: string[];
   videoTag?: string;
   videoLength?: number;
   backgroundImage?: string | null;
   videoSize?: string;
-  audioUrl?: string | null;
+audioUrl?: string | null;
+sceneDurations?: number[];
 }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -23,12 +25,12 @@ export function RemotionVideo({
   const safeScenes = scenes.length > 0 ? scenes : [""];
   const totalFrames = videoLength * fps;
 
-  const { currentScene, progress } = getSceneTiming({
-    scenes: safeScenes,
-    totalFrames,
-    frame,
-  });
-
+const { currentScene, progress } = getSceneTiming({
+  scenes: safeScenes,
+  totalFrames,
+  frame,
+  sceneDurations,
+});
   const elapsedTime = Math.floor(frame / fps);
 
 return (

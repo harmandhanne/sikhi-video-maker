@@ -12,6 +12,7 @@ export function VideoPreview({
 videoTag,
 isPlaying = true,
 resetKey = 0,
+sceneDurations,
 }: {
   scenes: string[];
   backgroundImage: string | null;
@@ -20,6 +21,7 @@ resetKey = 0,
 videoTag: string;
 isPlaying?: boolean;
 resetKey?: number;
+sceneDurations?: number[];
 }) {
   const fps = 30;
   const safeScenes = scenes.length > 0 ? scenes : [""];
@@ -44,11 +46,12 @@ useEffect(() => {
   return () => clearInterval(timer);
 }, [isPlaying, totalFrames]);
 
-  const { currentScene, progress } = getSceneTiming({
-    scenes: safeScenes,
-    totalFrames,
-    frame,
-  });
+const { currentScene, progress } = getSceneTiming({
+  scenes: safeScenes,
+  totalFrames,
+  frame,
+  sceneDurations,
+});
 
   const elapsedTime = Math.floor(frame / fps);
 

@@ -20,6 +20,7 @@ const [downloadUrl, setDownloadUrl] = useState("");
 const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 const [previewAudioUrl, setPreviewAudioUrl] = useState("");
 const [voiceVideoLength, setVoiceVideoLength] = useState<number | null>(null);
+const [voiceSceneDurations, setVoiceSceneDurations] = useState<number[]>([]);
 const [useVoice, setUseVoice] = useState(false);
 const [voiceGender, setVoiceGender] = useState<"male" | "female">("male");
 const [isGeneratingVoice, setIsGeneratingVoice] = useState(false);
@@ -39,6 +40,7 @@ async function generateScenes() {
       .filter((line) => line.length > 0);
 
     setScenes(parts);
+    setVoiceSceneDurations([]);
 
     const res = await fetch("/api/generate-images", {
       method: "POST",
@@ -74,11 +76,13 @@ body: JSON.stringify({
 
       setPreviewAudioUrl(`${voiceData.audioUrl}?t=${Date.now()}`);
       setVoiceVideoLength(voiceData.videoLength);
+      setVoiceSceneDurations(voiceData.sceneDurations || []);
       setIsGeneratingVoice(false);
     } else {
       setPreviewAudioUrl("");
-      setVoiceVideoLength(null);
-      setIsPreviewPlaying(false);
+setVoiceVideoLength(null);
+setVoiceSceneDurations([]);
+setIsPreviewPlaying(false);
     }
   } catch (error) {
     console.error(error);
@@ -96,11 +100,15 @@ const finalVideoLength =
     ? Number(customLength || 30)
     : videoLength;
 
-const sceneDurations = getSceneDurations({
-  scenes,
-  videoLength: finalVideoLength,
-});
-
+const sceneDurations =
+  useVoice && voiceSceneDurations.length > 0
+    ? voiceSceneDurations.map((duration) =>
+        Math.max(1, Math.round(duration))
+      )
+    : getSceneDurations({
+        scenes,
+        videoLength: finalVideoLength,
+      });
   return (
     <main className="min-h-screen bg-black text-white flex items-center justify-center p-10">
       <div className="w-full max-w-2xl space-y-6">
@@ -205,8 +213,9 @@ img.src = URL.createObjectURL(file);
     onChange={(e) => {
   setUseVoice(e.target.checked);
   setPreviewAudioUrl("");
-  setVoiceVideoLength(null);
-  setIsPreviewPlaying(false);
+setVoiceVideoLength(null);
+setVoiceSceneDurations([]);
+setIsPreviewPlaying(false);
 }}
   />
   <span>Use voice and auto-match video length</span>
@@ -281,6 +290,7 @@ body: JSON.stringify({
   backgroundImage,
   useVoice,
   voiceGender,
+  sceneDurations: useVoice ? voiceSceneDurations : undefined,
 }),
   });
 
@@ -384,15 +394,16 @@ setTimeout(() => {
       />
     )}
 
-    <VideoPreview
-      scenes={scenes}
-      backgroundImage={backgroundImage}
-      videoSize={videoSize}
-      videoLength={finalVideoLength}
-      videoTag={videoTag}
-      isPlaying={!useVoice || isPreviewPlaying}
-      resetKey={previewStartKey}
-    />
+<VideoPreview
+  scenes={scenes}
+  backgroundImage={backgroundImage}
+  videoSize={videoSize}
+  videoLength={finalVideoLength}
+  videoTag={videoTag}
+  isPlaying={!useVoice || isPreviewPlaying}
+  resetKey={previewStartKey}
+  sceneDurations={useVoice ? voiceSceneDurations : undefined}
+/>
 
     {useVoice && previewAudioUrl && (
       <button

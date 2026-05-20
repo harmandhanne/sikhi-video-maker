@@ -28,51 +28,124 @@ const baseUrl =
 if (inputProps.useVoice) {
   const audioName = `${jobId}.mp3`;
   const audioPath = path.join(exportsDir, audioName);
-  const textPath = path.join(exportsDir, `${jobId}.txt`);
 
-  const voiceText = Array.isArray(inputProps.scenes)
-    ? inputProps.scenes.join(". ")
-    : "";
+  const selectedVoice =
+    inputProps.voiceGender === "female"
+      ? "en-US-AriaNeural"
+      : "en-US-AndrewNeural";
 
-  fs.writeFileSync(textPath, voiceText, "utf-8");
+  console.log("Export voice:", selectedVoice);
+
+  const safeScenes = Array.isArray(inputProps.scenes)
+    ? inputProps.scenes.map((scene: string) => String(scene).trim()).filter(Boolean)
+    : [];
 
   const pythonCmd = process.platform === "win32" ? "python" : "python3";
 
-  const selectedVoice =
-  inputProps.voiceGender === "female"
-    ? "en-US-AriaNeural"
-    : "en-US-AndrewNeural";
+  const sceneAudioPaths: string[] = [];
+  const tempFiles: string[] = [];
+  const sceneDurations: number[] = [];
 
-console.log("Export voice:", selectedVoice);
+  const cleanupFiles = (files: string[]) => {
+    for (const file of files) {
+      fs.unlink(file, () => {});
+    }
+  };
 
-  const voiceResult = spawnSync(pythonCmd, [
-    "-m",
-    "edge_tts",
-    "--voice",
-    selectedVoice,
-    "--file",
-    textPath,
-    "--write-media",
-    audioPath,
-  ]);
+  const concatPath = (filePath: string) => {
+    return filePath.replace(/\\/g, "/").replace(/'/g, "'\\''");
+  };
 
-  fs.unlink(textPath, () => {});
+  try {
+    for (let i = 0; i < safeScenes.length; i++) {
+      const textPath = path.join(exportsDir, `${jobId}-${i}.txt`);
+      const sceneAudioPath = path.join(exportsDir, `${jobId}-${i}.mp3`);
 
-if (voiceResult.status !== 0) {
-  console.error(voiceResult.stderr?.toString());
-  inputProps.audioFileName = null;
-  inputProps.audioUrl = null;
-} else {
+      tempFiles.push(textPath);
+      sceneAudioPaths.push(sceneAudioPath);
+
+      fs.writeFileSync(textPath, safeScenes[i], "utf-8");
+
+      const voiceResult = spawnSync(pythonCmd, [
+        "-m",
+        "edge_tts",
+        "--voice",
+        selectedVoice,
+        "--file",
+        textPath,
+        "--write-media",
+        sceneAudioPath,
+      ]);
+
+      fs.unlink(textPath, () => {});
+
+      if (voiceResult.status !== 0) {
+        throw new Error(voiceResult.stderr?.toString() || "Voice failed");
+      }
+
+      const metadata = await parseFile(sceneAudioPath);
+      sceneDurations.push(metadata.format.duration || 1);
+    }
+
+    if (sceneAudioPaths.length === 1) {
+      fs.copyFileSync(sceneAudioPaths[0], audioPath);
+    } else {
+      const listPath = path.join(exportsDir, `${jobId}-concat.txt`);
+      tempFiles.push(listPath);
+
+      fs.writeFileSync(
+        listPath,
+        sceneAudioPaths
+          .map((filePath) => `file '${concatPath(filePath)}'`)
+          .join("\n"),
+        "utf-8"
+      );
+
+      const concatResult = spawnSync("ffmpeg", [
+        "-y",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        listPath,
+        "-c:a",
+        "libmp3lame",
+        "-b:a",
+        "192k",
+        audioPath,
+      ]);
+
+      if (concatResult.status !== 0) {
+        throw new Error(
+          concatResult.stderr?.toString() || "Audio combine failed"
+        );
+      }
+    }
+
     const metadata = await parseFile(audioPath);
-const audioDuration = metadata.format.duration || inputProps.videoLength;
+    const audioDuration =
+      metadata.format.duration ||
+      sceneDurations.reduce((a, b) => a + b, 0) ||
+      inputProps.videoLength;
 
-  inputProps.audioFileName = audioName;
-inputProps.audioUrl = `${baseUrl}/api/download-video/${audioName}`;
-inputProps.videoLength = Math.ceil(audioDuration);
+    inputProps.sceneDurations = sceneDurations;
+    inputProps.audioFileName = audioName;
+    inputProps.audioUrl = `${baseUrl}/api/download-video/${audioName}`;
+    inputProps.videoLength = Math.ceil(audioDuration);
+
+    cleanupFiles([...sceneAudioPaths, ...tempFiles]);
+  } catch (error) {
+    console.error(error);
+
+    cleanupFiles([...sceneAudioPaths, ...tempFiles, audioPath]);
+
+    inputProps.audioFileName = null;
+    inputProps.audioUrl = null;
   }
 } else {
   inputProps.audioFileName = null;
-inputProps.audioUrl = null;
+  inputProps.audioUrl = null;
 }
 
   renderJobs.set(jobId, {
