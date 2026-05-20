@@ -13,6 +13,7 @@ videoTag,
 isPlaying = true,
 resetKey = 0,
 sceneDurations,
+syncedTime = null,
 }: {
   scenes: string[];
   backgroundImage: string | null;
@@ -22,6 +23,7 @@ videoTag: string;
 isPlaying?: boolean;
 resetKey?: number;
 sceneDurations?: number[];
+syncedTime?: number | null;
 }) {
   const fps = 30;
   const safeScenes = scenes.length > 0 ? scenes : [""];
@@ -34,6 +36,7 @@ useEffect(() => {
 }, [scenes, videoLength, totalFrames, resetKey]);
 
 useEffect(() => {
+  if (syncedTime !== null) return;
   if (!isPlaying) return;
 
   const timer = setInterval(() => {
@@ -44,13 +47,22 @@ useEffect(() => {
   }, 1000 / fps);
 
   return () => clearInterval(timer);
-}, [isPlaying, totalFrames]);
+}, [isPlaying, totalFrames, syncedTime]);
+
+useEffect(() => {
+  if (syncedTime === null) return;
+
+  setFrame(
+    Math.min(totalFrames - 1, Math.floor(syncedTime * fps))
+  );
+}, [syncedTime, totalFrames]);
 
 const { currentScene, progress } = getSceneTiming({
   scenes: safeScenes,
   totalFrames,
   frame,
   sceneDurations,
+  fps,
 });
 
   const elapsedTime = Math.floor(frame / fps);

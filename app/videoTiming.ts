@@ -1,15 +1,20 @@
 export function getSceneTiming({
   scenes,
   totalFrames,
-  frame,
-  sceneDurations,
+frame,
+sceneDurations,
+fps = 30,
 }: {
   scenes: string[];
   totalFrames: number;
   frame: number;
   sceneDurations?: number[];
+fps?: number;
 }) {
   const safeScenes = scenes.length > 0 ? scenes : [""];
+
+const syncOffsetFrames = 0;
+const syncedFrame = Math.max(0, frame - syncOffsetFrames);
 
   const hasVoiceDurations =
     sceneDurations &&
@@ -18,13 +23,11 @@ export function getSceneTiming({
 
   let sceneFrameDurations: number[];
 
-  if (hasVoiceDurations) {
-    const totalSeconds = sceneDurations.reduce((a, b) => a + b, 0);
-
-    sceneFrameDurations = sceneDurations.map((duration) =>
-      Math.max(1, Math.round((duration / totalSeconds) * totalFrames))
-    );
-  } else {
+if (hasVoiceDurations) {
+  sceneFrameDurations = sceneDurations.map((duration) =>
+    Math.max(1, Math.round(duration * fps))
+  );
+} else {
     const weightsPerScene = safeScenes.map((scene) =>
       Math.max(
         scene.trim().split(/\s+/).length * 6,
@@ -45,8 +48,8 @@ export function getSceneTiming({
     const duration = sceneFrameDurations[i];
     const isLastScene = i === sceneFrameDurations.length - 1;
 
-    if (frame < accumulated + duration || isLastScene) {
-      const sceneFrame = Math.max(0, frame - accumulated);
+if (syncedFrame < accumulated + duration || isLastScene) {
+  const sceneFrame = Math.max(0, syncedFrame - accumulated);
 
       const progress = Math.min(
         100,
@@ -71,8 +74,6 @@ export function getSceneTiming({
     currentSceneDuration: totalFrames,
   };
 }
-
-
 export function getSceneDurations({
   scenes,
   videoLength,
@@ -81,6 +82,7 @@ export function getSceneDurations({
   videoLength: number;
 }) {
   const safeScenes = scenes.length > 0 ? scenes : [""];
+
 
 const weightsPerScene = safeScenes.map((scene) =>
   Math.max(

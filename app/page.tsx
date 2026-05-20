@@ -27,6 +27,8 @@ const [isGeneratingVoice, setIsGeneratingVoice] = useState(false);
 const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
 const [previewStartKey, setPreviewStartKey] = useState(0);
 const [showPreviewIcon, setShowPreviewIcon] = useState(true);
+const [previewSyncedTime, setPreviewSyncedTime] = useState<number | null>(null);
+const previewSyncFrameRef = useRef<number | null>(null);
 const previewIconTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -39,8 +41,14 @@ async function generateScenes() {
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
 
-    setScenes(parts);
-    setVoiceSceneDurations([]);
+setScenes(parts);
+setVoiceSceneDurations([]);
+setPreviewSyncedTime(null);
+
+if (previewSyncFrameRef.current !== null) {
+  cancelAnimationFrame(previewSyncFrameRef.current);
+  previewSyncFrameRef.current = null;
+}
 
     const res = await fetch("/api/generate-images", {
       method: "POST",
@@ -207,17 +215,23 @@ img.src = URL.createObjectURL(file);
 )}
 
 <label className="flex items-center gap-3 p-4 rounded-xl bg-zinc-900 border border-zinc-700">
-  <input
-    type="checkbox"
-    checked={useVoice}
-    onChange={(e) => {
-  setUseVoice(e.target.checked);
-  setPreviewAudioUrl("");
-setVoiceVideoLength(null);
-setVoiceSceneDurations([]);
-setIsPreviewPlaying(false);
-}}
-  />
+<input
+  type="checkbox"
+  checked={useVoice}
+  onChange={(e) => {
+    setUseVoice(e.target.checked);
+    setPreviewAudioUrl("");
+    setVoiceVideoLength(null);
+    setVoiceSceneDurations([]);
+    setPreviewSyncedTime(null);
+    setIsPreviewPlaying(false);
+
+    if (previewSyncFrameRef.current !== null) {
+      cancelAnimationFrame(previewSyncFrameRef.current);
+      previewSyncFrameRef.current = null;
+    }
+  }}
+/>
   <span>Use voice and auto-match video length</span>
 </label>
 
@@ -386,12 +400,20 @@ setTimeout(() => {
 {scenes.length > 0 && (!useVoice || previewAudioUrl) && (
   <div className="relative mx-auto" style={{ width: "fit-content" }}>
     {useVoice && previewAudioUrl && (
-      <audio
-        ref={audioRef}
-        src={previewAudioUrl}
-        onEnded={() => setIsPreviewPlaying(false)}
-        className="hidden"
-      />
+<audio
+  ref={audioRef}
+  src={previewAudioUrl}
+  onEnded={() => {
+    setIsPreviewPlaying(false);
+    setShowPreviewIcon(true);
+
+    if (previewSyncFrameRef.current !== null) {
+      cancelAnimationFrame(previewSyncFrameRef.current);
+      previewSyncFrameRef.current = null;
+    }
+  }}
+  className="hidden"
+/>
     )}
 
 <VideoPreview
@@ -403,6 +425,7 @@ setTimeout(() => {
   isPlaying={!useVoice || isPreviewPlaying}
   resetKey={previewStartKey}
   sceneDurations={useVoice ? voiceSceneDurations : undefined}
+syncedTime={useVoice ? previewSyncedTime : null}
 />
 
     {useVoice && previewAudioUrl && (
@@ -417,19 +440,36 @@ onClick={async () => {
     clearTimeout(previewIconTimeoutRef.current);
   }
 
-  if (isPreviewPlaying) {
-    audioRef.current.pause();
-    setIsPreviewPlaying(false);
-    setShowPreviewIcon(true);
-    return;
-  }
-
-  audioRef.current.currentTime = 0;
-  setPreviewStartKey((prev) => prev + 1);
-  setIsPreviewPlaying(true);
+if (isPreviewPlaying) {
+  audioRef.current.pause();
+  setIsPreviewPlaying(false);
   setShowPreviewIcon(true);
 
-  await audioRef.current.play();
+  if (previewSyncFrameRef.current !== null) {
+    cancelAnimationFrame(previewSyncFrameRef.current);
+    previewSyncFrameRef.current = null;
+  }
+
+  return;
+}
+audioRef.current.currentTime = 0;
+setPreviewSyncedTime(0);
+setPreviewStartKey((prev) => prev + 1);
+setIsPreviewPlaying(true);
+setShowPreviewIcon(true);
+
+await audioRef.current.play();
+
+const syncPreviewToAudio = () => {
+  if (!audioRef.current) return;
+
+  setPreviewSyncedTime(audioRef.current.currentTime);
+
+  previewSyncFrameRef.current =
+    requestAnimationFrame(syncPreviewToAudio);
+};
+
+syncPreviewToAudio();
 
   previewIconTimeoutRef.current = setTimeout(() => {
     setShowPreviewIcon(false);

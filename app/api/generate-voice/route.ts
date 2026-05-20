@@ -60,12 +60,16 @@ export async function POST(req: Request) {
       const voiceResult = spawnSync(pythonCmd, [
         "-m",
         "edge_tts",
-        "--voice",
-        selectedVoice,
-        "--file",
-        textPath,
-        "--write-media",
-        sceneAudioPath,
+"--voice",
+selectedVoice,
+"--rate",
+"-5%",
+"--pitch",
+"+3Hz",
+"--file",
+textPath,
+"--write-media",
+sceneAudioPath,
       ]);
 
       fs.unlink(textPath, () => {});

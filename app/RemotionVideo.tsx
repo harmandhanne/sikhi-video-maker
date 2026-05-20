@@ -30,6 +30,7 @@ const { currentScene, progress } = getSceneTiming({
   totalFrames,
   frame,
   sceneDurations,
+  fps,
 });
   const elapsedTime = Math.floor(frame / fps);
 
