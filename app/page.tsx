@@ -3,13 +3,16 @@
 import { useRef, useState } from "react";
 import { VideoPreview } from "./VideoPreview";
 import { getSceneDurations } from "./videoTiming";
+import type { BackgroundAsset } from "./backgroundAsset";
 
 
 export default function Home() {
   const [script, setScript] = useState("");
   const [scenes, setScenes] = useState<string[]>([]);
   const [prompts, setPrompts] = useState<string[]>([]);
-  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [backgroundAsset, setBackgroundAsset] = useState<BackgroundAsset | null>(null);
+const [isUploadingBackground, setIsUploadingBackground] = useState(false);
+const [useOriginalBackgroundSound, setUseOriginalBackgroundSound] = useState(false);
   const [videoSize, setVideoSize] = useState("9:16");
   const [videoLength, setVideoLength] = useState(30);
 const [customLength, setCustomLength] = useState("");
@@ -74,7 +77,7 @@ body: JSON.stringify({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
+body: JSON.stringify({
   scenes: parts,
   voiceGender,
 }),
@@ -129,50 +132,71 @@ const sceneDurations =
           className="w-full h-64 p-4 rounded-xl bg-zinc-900 border border-zinc-700 outline-none"
         />
 
-        <input
+<input
   type="file"
-  accept="image/*"
-  onChange={(e) => {
+  accept="image/*,video/mp4,video/webm,video/quicktime"
+  onChange={async (e) => {
     const file = e.target.files?.[0];
-if (file) {
-const img = new Image();
+    if (!file) return;
 
-img.onload = () => {
-const maxWidth =
-  videoSize === "16:9" ? 1920 : 1080;
+    setIsUploadingBackground(true);
 
-const maxHeight =
-  videoSize === "16:9" ? 1080 : videoSize === "1:1" ? 1080 : 1920;
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
 
-  const scale = Math.min(
-    maxWidth / img.width,
-    maxHeight / img.height,
-    1
-  );
+      const res = await fetch("/api/upload-background", {
+        method: "POST",
+        body: formData,
+      });
 
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(img.width * scale);
-  canvas.height = Math.round(img.height * scale);
+      const data = await res.json();
 
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+      if (!res.ok) {
+        throw new Error(data.error || "Upload failed");
+      }
 
-ctx.imageSmoothingEnabled = true;
-ctx.imageSmoothingQuality = "high";
+      setBackgroundAsset(data.asset);
 
-ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-const resizedImage = canvas.toDataURL("image/jpeg", 0.97);
-
-  setBackgroundImage(resizedImage);
-};
-
-img.src = URL.createObjectURL(file);
-}
+      if (data.asset.type !== "video") {
+        setUseOriginalBackgroundSound(false);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Background upload failed");
+    } finally {
+      setIsUploadingBackground(false);
+    }
   }}
   className="w-full p-3 rounded-xl bg-zinc-900 border border-zinc-700"
 />
 
+{isUploadingBackground && (
+  <p className="text-yellow-400 text-sm">Uploading background...</p>
+)}
+
+{backgroundAsset && (
+  <p className="text-green-400 text-sm">
+    Background uploaded: {backgroundAsset.type}
+  </p>
+)}
+
+{backgroundAsset?.type === "video" && !useVoice && (
+  <label className="flex items-center gap-3 p-4 rounded-xl bg-zinc-900 border border-zinc-700">
+    <input
+      type="checkbox"
+      checked={useOriginalBackgroundSound}
+      onChange={(e) => setUseOriginalBackgroundSound(e.target.checked)}
+    />
+    <span>Use original video sound</span>
+  </label>
+)}
+
+{backgroundAsset?.type === "video" && useVoice && (
+  <p className="text-zinc-400 text-sm">
+    Original background video sound is muted because app voice is on.
+  </p>
+)}
 <select
   value={videoSize}
   onChange={(e) => setVideoSize(e.target.value)}
@@ -220,6 +244,10 @@ img.src = URL.createObjectURL(file);
   checked={useVoice}
   onChange={(e) => {
     setUseVoice(e.target.checked);
+
+if (e.target.checked) {
+  setUseOriginalBackgroundSound(false);
+}
     setPreviewAudioUrl("");
     setVoiceVideoLength(null);
     setVoiceSceneDurations([]);
@@ -301,8 +329,10 @@ body: JSON.stringify({
   videoLength: finalVideoLength,
   videoSize,
   videoTag,
-  backgroundImage,
-  useVoice,
+backgroundAsset,
+useOriginalBackgroundSound:
+  backgroundAsset?.type === "video" && !useVoice && useOriginalBackgroundSound,
+useVoice,
   voiceGender,
   sceneDurations: useVoice ? voiceSceneDurations : undefined,
 }),
@@ -418,7 +448,10 @@ setTimeout(() => {
 
 <VideoPreview
   scenes={scenes}
-  backgroundImage={backgroundImage}
+  backgroundAsset={backgroundAsset}
+useOriginalBackgroundSound={
+  backgroundAsset?.type === "video" && !useVoice && useOriginalBackgroundSound
+}
   videoSize={videoSize}
   videoLength={finalVideoLength}
   videoTag={videoTag}

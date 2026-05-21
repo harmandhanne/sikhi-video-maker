@@ -25,14 +25,26 @@ const baseUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
   (host ? `${protocol}://${host}` : "http://localhost:3000");
 
+if (inputProps.backgroundAsset?.url?.startsWith("/")) {
+  inputProps.backgroundAsset = {
+    ...inputProps.backgroundAsset,
+    url: `${baseUrl}${inputProps.backgroundAsset.url}`,
+  };
+}
+
+inputProps.useOriginalBackgroundSound =
+  inputProps.backgroundAsset?.type === "video" &&
+  !inputProps.useVoice &&
+  inputProps.useOriginalBackgroundSound === true;
+
 if (inputProps.useVoice) {
   const audioName = `${jobId}.mp3`;
   const audioPath = path.join(exportsDir, audioName);
 
-  const selectedVoice =
-    inputProps.voiceGender === "female"
-      ? "en-US-AriaNeural"
-      : "en-US-AndrewNeural";
+const selectedVoice =
+  inputProps.voiceGender === "female"
+    ? "en-US-AriaNeural"
+    : "en-US-AndrewNeural";
 
   console.log("Export voice:", selectedVoice);
 

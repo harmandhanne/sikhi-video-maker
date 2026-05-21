@@ -15,12 +15,12 @@ function concatPath(filePath: string) {
 }
 
 export async function POST(req: Request) {
-  const { scenes, voiceGender = "male" } = await req.json();
+const { scenes, voiceGender = "male" } = await req.json();
 
-  const selectedVoice =
-    voiceGender === "female"
-      ? "en-US-AriaNeural"
-      : "en-US-AndrewNeural";
+const selectedVoice =
+  voiceGender === "female"
+    ? "en-US-AriaNeural"
+    : "en-US-AndrewNeural";
 
   console.log("Preview voice:", selectedVoice);
 

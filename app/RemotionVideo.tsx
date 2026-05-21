@@ -1,21 +1,24 @@
 import { Audio, useCurrentFrame, useVideoConfig } from "remotion";
 import { VideoFrame } from "./VideoFrame";
 import { getSceneTiming } from "./videoTiming";
+import type { BackgroundAsset } from "./backgroundAsset";
 
 export function RemotionVideo({
   scenes,
   videoTag = "",
   videoLength = 30,
-  backgroundImage = null,
-  videoSize = "9:16",
+backgroundAsset = null,
+useOriginalBackgroundSound = false,
+videoSize = "9:16",
 audioUrl = null,
 sceneDurations = [],
 }: {
   scenes: string[];
   videoTag?: string;
   videoLength?: number;
-  backgroundImage?: string | null;
-  videoSize?: string;
+backgroundAsset?: BackgroundAsset | null;
+useOriginalBackgroundSound?: boolean;
+videoSize?: string;
 audioUrl?: string | null;
 sceneDurations?: number[];
 }) {
@@ -43,7 +46,8 @@ return (
   currentScene={currentScene}
   progress={progress}
   elapsedTime={elapsedTime}
-  backgroundImage={backgroundImage}
+  backgroundAsset={backgroundAsset}
+useOriginalBackgroundSound={useOriginalBackgroundSound && !audioUrl}
   videoSize={videoSize}
   videoLength={videoLength}
   videoTag={videoTag}
