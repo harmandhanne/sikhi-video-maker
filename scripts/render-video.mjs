@@ -9,19 +9,9 @@ const propsPath = process.argv[2];
 const inputProps = JSON.parse(fs.readFileSync(propsPath, "utf-8"));
 const outputPath = process.argv[3];
 
-const bundleCachePath = path.resolve(process.cwd(), ".remotion-bundle-url.txt");
-
-let bundleLocation;
-
-if (fs.existsSync(bundleCachePath)) {
-  bundleLocation = fs.readFileSync(bundleCachePath, "utf-8");
-} else {
-  bundleLocation = await bundle({
-    entryPoint: path.resolve(process.cwd(), "entry.ts"),
-  });
-
-  fs.writeFileSync(bundleCachePath, bundleLocation, "utf-8");
-}
+const bundleLocation = await bundle({
+  entryPoint: path.resolve(process.cwd(), "entry.ts"),
+});
 
 const composition = await selectComposition({
   serveUrl: bundleLocation,

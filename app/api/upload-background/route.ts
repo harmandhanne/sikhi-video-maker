@@ -63,14 +63,22 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
     await fs.writeFile(filePath, buffer);
 
-    return NextResponse.json({
-      asset: {
-        type: assetType,
-        url: `/uploads/${fileName}`,
-        originalName: file.name,
-        mimeType: file.type,
-      },
-    });
+const asset = {
+  type: assetType,
+  url: `/uploads/${fileName}`,
+  originalName: file.name,
+  mimeType: file.type,
+};
+
+setTimeout(() => {
+  fs.unlink(filePath).catch((error) => {
+    if (error?.code !== "ENOENT") {
+      console.error("Background cleanup failed:", error);
+    }
+  });
+}, 1000 * 60 * 30);
+
+return NextResponse.json({ asset });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
