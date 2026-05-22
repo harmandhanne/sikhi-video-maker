@@ -44,3 +44,5 @@ public/exports/*.mp4
 public/exports/*.json
 public/exports/*.txt
 test-scene.mp3
+public/uploads/*
+!public/uploads/.gitkeep
