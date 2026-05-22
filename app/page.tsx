@@ -34,6 +34,85 @@ const [previewSyncedTime, setPreviewSyncedTime] = useState<number | null>(null);
 const previewSyncFrameRef = useRef<number | null>(null);
 const previewIconTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 const audioRef = useRef<HTMLAudioElement | null>(null);
+const backgroundInputRef = useRef<HTMLInputElement | null>(null);
+
+function resetPreviewAndRender() {
+  setScenes([]);
+  setPrompts([]);
+  setDownloadUrl("");
+  setRenderProgress(0);
+  setPreviewAudioUrl("");
+  setVoiceVideoLength(null);
+  setVoiceSceneDurations([]);
+  setIsPreviewPlaying(false);
+  setPreviewSyncedTime(null);
+  setShowPreviewIcon(true);
+
+  if (audioRef.current) {
+    audioRef.current.pause();
+    audioRef.current.currentTime = 0;
+  }
+
+  if (previewSyncFrameRef.current !== null) {
+    cancelAnimationFrame(previewSyncFrameRef.current);
+    previewSyncFrameRef.current = null;
+  }
+}
+
+function clearScript() {
+  setScript("");
+  resetPreviewAndRender();
+}
+
+function clearBackground() {
+  setBackgroundAsset(null);
+  setUseOriginalBackgroundSound(false);
+
+  if (backgroundInputRef.current) {
+    backgroundInputRef.current.value = "";
+  }
+
+  resetPreviewAndRender();
+}
+
+
+
+function waitForBackgroundAsset(asset: BackgroundAsset | null) {
+  return new Promise<void>((resolve) => {
+    if (!asset) {
+      resolve();
+      return;
+    }
+
+    let finished = false;
+
+    const done = () => {
+      if (finished) return;
+      finished = true;
+      resolve();
+    };
+
+    setTimeout(done, 10000);
+
+    if (asset.type === "image") {
+      const img = new Image();
+      img.onload = done;
+      img.onerror = done;
+      img.src = asset.previewUrl || asset.url;
+      return;
+    }
+
+    const video = document.createElement("video");
+    video.preload = "auto";
+    video.muted = true;
+    video.playsInline = true;
+    video.onloadeddata = done;
+    video.oncanplay = done;
+    video.onerror = done;
+    video.src = asset.previewUrl || asset.url;
+    video.load();
+  });
+}
 
 async function generateScenes() {
   setIsGeneratingVideo(true);
@@ -44,7 +123,9 @@ async function generateScenes() {
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
 
-setScenes(parts);
+const backgroundToLoad = backgroundAsset;
+
+setScenes([]);
 setVoiceSceneDurations([]);
 setPreviewSyncedTime(null);
 
@@ -91,10 +172,13 @@ body: JSON.stringify({
       setIsGeneratingVoice(false);
     } else {
       setPreviewAudioUrl("");
-setVoiceVideoLength(null);
-setVoiceSceneDurations([]);
-setIsPreviewPlaying(false);
+      setVoiceVideoLength(null);
+      setVoiceSceneDurations([]);
+      setIsPreviewPlaying(false);
     }
+
+    await waitForBackgroundAsset(backgroundToLoad);
+    setScenes(parts);
   } catch (error) {
     console.error(error);
     alert("Video generation failed");
@@ -125,16 +209,32 @@ const sceneDurations =
       <div className="w-full max-w-2xl space-y-6">
         <h1 className="text-5xl font-bold text-center">Video Maker</h1>
 
-        <textarea
-          value={script}
-          onChange={(e) => setScript(e.target.value)}
-          placeholder="Paste your script here..."
-          className="w-full h-64 p-4 rounded-xl bg-zinc-900 border border-zinc-700 outline-none"
-        />
+<div className="relative">
+  <textarea
+    value={script}
+    onChange={(e) => setScript(e.target.value)}
+    placeholder="Paste your script here..."
+    className="w-full h-64 p-4 pr-12 rounded-xl bg-zinc-900 border border-zinc-700 outline-none"
+  />
 
+  {script && (
+    <button
+      type="button"
+      onClick={clearScript}
+      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-zinc-800 text-white hover:bg-red-500 font-bold"
+      title="Clear script"
+    >
+      ×
+    </button>
+  )}
+</div>
+
+<div className="relative">
 <input
+  ref={backgroundInputRef}
   type="file"
   accept="image/*,video/mp4,video/webm,video/quicktime"
+
   onChange={async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -156,11 +256,22 @@ const sceneDurations =
         throw new Error(data.error || "Upload failed");
       }
 
-      setBackgroundAsset(data.asset);
+await waitForBackgroundAsset(data.asset);
 
-      if (data.asset.type !== "video") {
-        setUseOriginalBackgroundSound(false);
-      }
+const previewUrl = URL.createObjectURL(file);
+
+const assetWithPreview = {
+  ...data.asset,
+  previewUrl,
+};
+
+await waitForBackgroundAsset(assetWithPreview);
+
+setBackgroundAsset(assetWithPreview);
+
+if (data.asset.type !== "video") {
+  setUseOriginalBackgroundSound(false);
+}
     } catch (error) {
       console.error(error);
       alert("Background upload failed");
@@ -168,9 +279,20 @@ const sceneDurations =
       setIsUploadingBackground(false);
     }
   }}
-  className="w-full p-3 rounded-xl bg-zinc-900 border border-zinc-700"
+  className="w-full p-3 pr-12 rounded-xl bg-zinc-900 border border-zinc-700"
 />
 
+{backgroundAsset && (
+  <button
+    type="button"
+    onClick={clearBackground}
+    className="absolute top-2 right-3 w-8 h-8 rounded-full bg-zinc-800 text-white hover:bg-red-500 font-bold"
+    title="Clear background"
+  >
+    ×
+  </button>
+)}
+</div>
 {isUploadingBackground && (
   <p className="text-yellow-400 text-sm">Uploading background...</p>
 )}
@@ -297,13 +419,13 @@ if (e.target.checked) {
 
 <button
   onClick={generateScenes}
-  disabled={isGeneratingVideo}
+  disabled={isGeneratingVideo || isUploadingBackground}
   className="w-full bg-white text-black py-4 rounded-xl font-bold text-lg hover:opacity-80 disabled:opacity-50"
 >
-  {isGeneratingVideo ? (
+  {isGeneratingVideo || isUploadingBackground ? (
     <span className="flex items-center justify-center gap-3">
       <span className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-      Generating Video...
+      {isUploadingBackground ? "Loading Background..." : "Generating Video..."}
     </span>
   ) : (
     "Generate Video"

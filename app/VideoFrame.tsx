@@ -37,10 +37,15 @@ videoSize: string;
     height: "100%",
   };
 
-  const sceneText = scenes[currentScene] || "";
-  const mood = getSceneMood(sceneText);
+const sceneText = scenes[currentScene] || "";
+const mood = getSceneMood(sceneText);
 
-  const previewVideoRef = useRef<HTMLVideoElement | null>(null);
+const mediaSrc =
+  mode === "preview"
+    ? backgroundAsset?.previewUrl || backgroundAsset?.url
+    : backgroundAsset?.url;
+
+const previewVideoRef = useRef<HTMLVideoElement | null>(null);
 
 useEffect(() => {
   const video = previewVideoRef.current;
@@ -133,7 +138,7 @@ useEffect(() => {
           ? { width: 500, height: 281 }
           : { width: 400, height: 711 }),
 
-        background: moodBackground,
+        background: backgroundAsset ? "transparent" : moodBackground,
         borderRadius: mode === "export" ? 0 : 30,
         overflow: "hidden",
         position: "relative",
@@ -146,22 +151,22 @@ useEffect(() => {
     >
       {backgroundAsset?.type === "image" &&
         (mode === "export" ? (
-          <Img src={backgroundAsset.url} style={mediaStyle} />
+          <Img src={mediaSrc || ""} style={mediaStyle} />
         ) : (
-          <img src={backgroundAsset.url} style={mediaStyle} alt="" />
+          <img src={mediaSrc || ""} style={mediaStyle} alt="" />
         ))}
 
       {backgroundAsset?.type === "video" &&
         (mode === "export" ? (
 <OffthreadVideo
-  src={backgroundAsset.url}
+  src={mediaSrc || ""}
   style={mediaStyle}
   muted={!useOriginalBackgroundSound}
 />
         ) : (
 <video
   ref={previewVideoRef}
-  src={backgroundAsset.url}
+  src={mediaSrc || ""}
   style={mediaStyle}
   muted={!useOriginalBackgroundSound}
   autoPlay={isPlaying}
@@ -196,7 +201,8 @@ useEffect(() => {
         }}
       />
 
-      {[...Array(mood === "rain" ? 12 : 8)].map((_, i) => (
+      {!backgroundAsset &&
+  [...Array(mood === "rain" ? 12 : 8)].map((_, i) => (
         <div
           key={i}
           style={{

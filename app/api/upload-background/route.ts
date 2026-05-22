@@ -65,7 +65,7 @@ export async function POST(req: Request) {
 
 const asset = {
   type: assetType,
-  url: `/uploads/${fileName}`,
+  url: `/api/uploads/${fileName}`,
   originalName: file.name,
   mimeType: file.type,
 };
