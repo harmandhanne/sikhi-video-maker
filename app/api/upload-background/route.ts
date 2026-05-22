@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import path from "path";
 import fs from "fs/promises";
 import crypto from "crypto";
+import { spawnSync } from "child_process";
 
 export const runtime = "nodejs";
 
@@ -26,6 +27,24 @@ function getExtension(fileName: string, mimeType: string) {
   if (mimeType === "video/quicktime") return ".mov";
 
   return "";
+}
+
+function getVideoDurationSeconds(filePath: string) {
+  const result = spawnSync("ffprobe", [
+    "-v",
+    "error",
+    "-show_entries",
+    "format=duration",
+    "-of",
+    "default=noprint_wrappers=1:nokey=1",
+    filePath,
+  ]);
+
+  if (result.status !== 0) return undefined;
+
+  const duration = Number(result.stdout.toString().trim());
+
+  return Number.isFinite(duration) && duration > 0 ? duration : undefined;
 }
 
 export async function POST(req: Request) {
@@ -66,6 +85,8 @@ export async function POST(req: Request) {
 const asset = {
   type: assetType,
   url: `/api/uploads/${fileName}`,
+  duration:
+    assetType === "video" ? getVideoDurationSeconds(filePath) : undefined,
   originalName: file.name,
   mimeType: file.type,
 };

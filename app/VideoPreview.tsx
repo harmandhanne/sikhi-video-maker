@@ -79,9 +79,10 @@ export function VideoPreview({
       videoSize={videoSize}
       videoLength={videoLength}
       videoTag={videoTag}
-      isPlaying={isPlaying}
+isPlaying={isPlaying && frame < totalFrames - 1}
 resetKey={resetKey}
 syncedTime={syncedTime}
+fps={fps}
 mode="preview"
     />
   );

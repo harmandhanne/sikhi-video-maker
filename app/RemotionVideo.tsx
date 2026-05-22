@@ -51,7 +51,8 @@ useOriginalBackgroundSound={useOriginalBackgroundSound && !audioUrl}
   videoSize={videoSize}
   videoLength={videoLength}
   videoTag={videoTag}
-  mode="export"
+fps={fps}
+mode="export"
     />
   </>
 );

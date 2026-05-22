@@ -1,4 +1,4 @@
-import { Img, OffthreadVideo } from "remotion";
+import { Img, OffthreadVideo, Loop } from "remotion";
 import { useEffect, useRef, type CSSProperties } from "react";
 import { getSceneMood } from "./videoBackgrounds";
 import type { BackgroundAsset } from "./backgroundAsset";
@@ -13,6 +13,7 @@ useOriginalBackgroundSound = false,
 isPlaying = true,
 resetKey = 0,
 syncedTime = null,
+fps = 30,
 videoSize,
   videoLength,
   videoTag,
@@ -27,6 +28,7 @@ useOriginalBackgroundSound?: boolean;
 isPlaying?: boolean;
 resetKey?: number;
 syncedTime?: number | null;
+fps?: number;
 videoSize: string;
   videoLength: number;
   videoTag: string;
@@ -44,6 +46,11 @@ const mediaSrc =
   mode === "preview"
     ? backgroundAsset?.previewUrl || backgroundAsset?.url
     : backgroundAsset?.url;
+
+const backgroundVideoDurationFrames = Math.max(
+  1,
+  Math.round((backgroundAsset?.duration || videoLength) * fps)
+);
 
 const previewVideoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -158,11 +165,13 @@ useEffect(() => {
 
       {backgroundAsset?.type === "video" &&
         (mode === "export" ? (
-<OffthreadVideo
-  src={mediaSrc || ""}
-  style={mediaStyle}
-  muted={!useOriginalBackgroundSound}
-/>
+<Loop durationInFrames={backgroundVideoDurationFrames}>
+  <OffthreadVideo
+    src={mediaSrc || ""}
+    style={mediaStyle}
+    muted={!useOriginalBackgroundSound}
+  />
+</Loop>
         ) : (
 <video
   ref={previewVideoRef}
