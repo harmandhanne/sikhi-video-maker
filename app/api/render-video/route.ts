@@ -8,6 +8,9 @@ import { renderJobs } from "../render-jobs";
 export async function POST(req: Request) {
   const inputProps = await req.json();
 
+console.log("Render background asset:", inputProps.backgroundAsset);
+console.log("Use original background sound:", inputProps.useOriginalBackgroundSound);
+
   const jobId = crypto.randomUUID();
   const outputName = `${jobId}.mp4`;
 
